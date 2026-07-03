@@ -1,0 +1,6 @@
+{
+  "name": "Manipulativos de Base 10",
+  "description": "Una aplicación interactiva para aprender el sistema decimal mediante bloques manipulativos de Base 10 (unidades, decenas y centenas).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

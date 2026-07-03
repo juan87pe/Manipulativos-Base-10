@@ -1,0 +1,1974 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manipulativos Matemáticos de Base 10</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Helvetica Neue', 'Arial', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #1e1e2f;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      /* Grid background */
+      #canvas-area {
+        background-color: #f8fafc;
+        background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+        background-size: 24px 24px;
+        background-position: 0 0;
+      }
+      /* Custom scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+      }
+      /* High Density Theme block outline */
+      .selected-block {
+        outline: 3px solid #3b82f6 !important;
+        outline-offset: 4px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+        z-index: 50 !important;
+      }
+      /* Plastic block grid segments */
+      .grid-unit {
+        box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.25), inset -1px -1px 0px rgba(0, 0, 0, 0.15);
+      }
+      /* High Density button classes */
+      .tool-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 12px;
+        transition: background 0.2s, border-color 0.2s;
+        font-weight: 500;
+        text-align: left;
+        border: 1px solid transparent;
+        cursor: pointer;
+        width: 100%;
+      }
+      .tool-btn:hover {
+        background: #2d2d44;
+      }
+      .btn-unit {
+        border-color: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+      .btn-ten {
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+      }
+      .btn-hundred {
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+      /* Active states overrides */
+      .bg-indigo-600 {
+        background-color: #3b82f6 !important;
+      }
+      .hover\/bg-indigo-500:hover {
+        background-color: #2563eb !important;
+      }
+      .text-indigo-300 {
+        color: #60a5fa !important;
+      }
+      .bg-indigo-500\/20 {
+        background-color: rgba(59, 130, 246, 0.2) !important;
+      }
+      .border-indigo-500\/30 {
+        border-color: rgba(59, 130, 246, 0.3) !important;
+      }
+    </style>
+  </head>
+  <body class="w-screen h-screen overflow-hidden flex bg-[#1e1e2f] text-slate-100">
+
+    <!-- SIDEBAR (LEFT) -->
+    <aside id="sidebar" class="w-[260px] bg-[#1e1e2f] border-r border-[#2d2d44] flex flex-col justify-between shrink-0 h-full z-20 shadow-xl transition-all duration-300 ease-in-out relative">
+      <!-- Toggle pull-tab button -->
+      <button onclick="toggleSidebar()" id="sidebar-toggle" class="absolute top-1/3 -translate-y-1/2 right-[-24px] w-6 h-16 bg-[#1e1e2f] hover:bg-[#2d2d44] border-t border-b border-r border-[#2d2d44] rounded-r-lg flex items-center justify-center cursor-pointer shadow-lg text-slate-400 hover:text-white transition-all z-30" title="Contraer/Expandir panel de bloques">
+        <!-- Chevron Left icon -->
+        <svg id="toggle-icon" class="w-4 h-4 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <!-- Non-squishable inner wrapper for crisp collapse animation scaling -->
+      <div class="w-[259px] h-full flex flex-col justify-between shrink-0 overflow-hidden">
+        <!-- Top Section -->
+        <div class="p-6 flex flex-col gap-5 overflow-y-auto flex-grow">
+        <div class="mb-2">
+          <h1 class="text-xl font-bold tracking-tight text-white leading-tight">Manipulativos Base 10</h1>
+          <p class="text-xs text-gray-400">Ingeniería de Manipulativos</p>
+        </div>
+
+        <div class="border-t border-[#2d2d44] my-0.5"></div>
+
+        <!-- Spawn triggers -->
+        <div class="flex flex-col gap-3">
+          <!-- Unit Button -->
+          <button onclick="spawnBlock('unit')" id="add-unit" class="tool-btn btn-unit">
+            <div class="w-5 h-5 bg-[#3b82f6] rounded shrink-0"></div>
+            <span class="text-sm font-semibold flex-grow text-left">+ Añadir Unidad</span>
+          </button>
+
+          <!-- Rod V Button -->
+          <button onclick="spawnBlock('rod_v')" id="add-rod-v" class="tool-btn btn-ten">
+            <div class="w-5 h-10 bg-[#ef4444] rounded-sm shrink-0 flex flex-col justify-between">
+              <div class="border-b border-black/15 h-1/2"></div>
+            </div>
+            <span class="text-sm font-semibold flex-grow text-left">+ Añadir Decena</span>
+          </button>
+
+          <!-- Flat Button -->
+          <button onclick="spawnBlock('flat')" id="add-flat" class="tool-btn btn-hundred">
+            <div class="w-10 h-10 bg-[#10b981] rounded-sm shrink-0 grid grid-cols-2 grid-rows-2">
+              <div class="border-b border-r border-white/10"></div><div class="border-b border-white/10"></div>
+              <div class="border-r border-white/10"></div><div></div>
+            </div>
+            <span class="text-sm font-semibold flex-grow text-left">+ Añadir Centena</span>
+          </button>
+
+          <div class="border-t border-[#2d2d44]/60 my-2"></div>
+
+          <!-- Place Value Chart Button -->
+          <button onclick="spawnBlock('place_value_chart')" id="add-place-value-chart" class="tool-btn border-indigo-500/20 text-indigo-300 hover:bg-[#2d2d44] select-none">
+            <div class="w-10 h-10 rounded border border-indigo-400/30 flex flex-col shrink-0 bg-indigo-950/20 overflow-hidden">
+              <div class="h-3.5 bg-indigo-500/20 border-b border-indigo-400/30 grid grid-cols-3">
+                <div class="border-r border-indigo-400/20"></div>
+                <div class="border-r border-indigo-400/20"></div>
+                <div></div>
+              </div>
+              <div class="flex-grow grid grid-cols-3">
+                <div class="border-r border-indigo-400/20"></div>
+                <div class="border-r border-indigo-400/20"></div>
+                <div></div>
+              </div>
+            </div>
+            <span class="text-sm font-semibold flex-grow text-left">+ Tablero Posicional</span>
+          </button>
+        </div>
+
+        </div>
+
+        <!-- Footer Info -->
+        <div class="p-5 border-t border-[#2d2d44] bg-[#1e1e2f] flex items-center justify-center shrink-0">
+          <span class="text-[10px] text-slate-500 font-semibold">v1.1.0 • Manipulativos Base 10</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN AREA (WORKSPACE) -->
+    <main class="flex-1 h-full flex flex-col relative overflow-hidden">
+      <!-- CANVAS CONTENT BOX -->
+      <div id="canvas-area" class="flex-grow w-full h-full relative overflow-hidden select-none active:outline-none">
+
+        <!-- WORKSPACE OVERLAYS FOR DRAWING & SELECTION -->
+        <!-- INFINITE STAGE WRAPPER -->
+        <div id="infinite-stage" class="absolute transition-transform duration-200 ease-out origin-top-left" style="transform: translate(0px, 0px); width: 80000px; height: 80000px; top: -40000px; left: -40000px;">
+          <!-- SVG Drawing overlay -->
+          <svg id="drawing-svg" class="absolute pointer-events-none z-10" style="left: 40000px; top: 40000px; width: 40000px; height: 40000px; overflow: visible !important;"></svg>
+          <!-- HTML5 Canvas for drawing backup or helper strokes (hidden by default) -->
+          <canvas id="drawing-canvas" class="absolute pointer-events-none z-10 hidden" style="left: 40000px; top: 40000px; width: 40000px; height: 40000px; overflow: visible !important;"></canvas>
+
+          <!-- Dynamic elements rendered inside the canvas area -->
+          <div id="blocks-container" class="absolute z-0" style="left: 40000px; top: 40000px; width: 40000px; height: 40000px;"></div >
+        </div>
+
+        <!-- Selection Lasso box -->
+        <div id="lasso-marquee" class="absolute border-2 border-[#3b82f6] bg-[#3b82f6]/10 rounded pointer-events-none hidden z-30"></div>
+
+        <!-- FLOATING CONTROLLER FOR PANNING (D-Pad style, bottom-left) -->
+        <div class="absolute bottom-6 left-6 pointer-events-auto z-40 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3 flex flex-col items-center gap-1.5 text-slate-800">
+          <!-- D-pad grid layout -->
+          <div class="grid grid-cols-3 grid-rows-3 gap-1 w-28 h-28 relative">
+            <div></div>
+            <button onclick="panCanvas(0, 150)" class="bg-slate-50 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 active:scale-95 transition flex items-center justify-center rounded-lg cursor-pointer" title="Desplazar Arriba">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" /></svg>
+            </button>
+            <div></div>
+
+            <button onclick="panCanvas(150, 0)" class="bg-slate-50 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 active:scale-95 transition flex items-center justify-center rounded-lg cursor-pointer" title="Desplazar Izquierda">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button onclick="resetPan()" class="bg-indigo-50 border border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 active:scale-95 transition flex items-center justify-center rounded-lg cursor-pointer" title="Centrar de nuevo">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+            </button>
+            <button onclick="panCanvas(-150, 0)" class="bg-slate-50 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 active:scale-95 transition flex items-center justify-center rounded-lg cursor-pointer" title="Desplazar Derecha">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+            </button>
+
+            <div></div>
+            <button onclick="panCanvas(0, -150)" class="bg-slate-50 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 active:scale-95 transition flex items-center justify-center rounded-lg cursor-pointer" title="Desplazar Abajo">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <div></div>
+          </div>
+        </div>
+
+        <!-- FLOATING STATUS BOARD / TOTAL COUNTER (High Density Theme - Collapsible/Dropdown Bubble) -->
+        <div class="absolute top-6 right-6 pointer-events-none z-40 flex flex-col items-end">
+          <!-- Main Bubble Button -->
+          <button onclick="toggleTotalDropdown(event)" id="total-bubble-btn" class="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-full shadow-lg hover:shadow-xl hover:border-indigo-200 hover:bg-slate-50 transition-all duration-200 px-5 py-2.5 flex items-center gap-2 cursor-pointer select-none text-slate-800 font-bold text-sm" title="Ver desglose de bloques">
+            <span class="text-slate-600 font-semibold font-sans">Valor Total</span>
+            <!-- Arrow -->
+            <svg id="total-dropdown-arrow" class="w-4 h-4 text-slate-400 transition-transform duration-300 pointer-events-none ml-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div id="total-dropdown-panel" class="mt-2 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl p-4 flex flex-col gap-3 min-w-[280px] select-none text-slate-800 transition-all duration-300 origin-top transform scale-95 opacity-0 pointer-events-none">
+            
+            <!-- Selector para cambiar el modo de conteo (Todos vs Selección vs Tachados) -->
+            <div class="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200/40">
+              <button onclick="setTotalMode('all')" id="btn-mode-all" class="flex-1 text-center py-1 rounded-lg text-[11px] font-bold transition duration-200 cursor-pointer select-none bg-white text-indigo-600 shadow-sm border border-slate-200/20" title="Contar todos los bloques">
+                Todo
+              </button>
+              <button onclick="setTotalMode('selected')" id="btn-mode-selected" class="flex-1 text-center py-1 rounded-lg text-[11px] font-bold transition duration-200 cursor-pointer select-none text-slate-500 hover:text-slate-800" title="Contar solo bloques seleccionados">
+                Selección
+              </button>
+              <button onclick="setTotalMode('crossed')" id="btn-mode-crossed" class="flex-1 text-center py-1 rounded-lg text-[11px] font-bold transition duration-200 cursor-pointer select-none text-slate-500 hover:text-slate-800" title="Contar solo bloques tachados">
+                Tachados
+              </button>
+            </div>
+
+            <!-- Sum Counter inside Dropdown with dynamic label -->
+            <div class="flex flex-col items-center justify-center p-3 bg-indigo-50/50 border border-indigo-100/60 rounded-xl">
+              <span id="sum-label" class="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Suma General</span>
+              <span id="global-sum" class="text-3xl font-black text-indigo-600 mt-1.5 leading-none">0</span>
+            </div>
+
+            <div class="flex items-center justify-between pb-1 border-b border-slate-100">
+              <span class="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">Desglose de Base 10</span>
+              <span class="text-[10px] text-slate-400 font-bold">Unidades</span>
+            </div>
+
+            <!-- Place Values -->
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between text-xs font-semibold py-1">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-emerald-500 shadow-sm"></span>
+                  <span class="text-slate-600">Centenas (C)</span>
+                </div>
+                <span class="bg-emerald-50 text-emerald-700 min-w-[24px] text-center px-1.5 py-0.5 rounded-md font-mono font-bold border border-emerald-100" id="breakdown-100">0</span>
+              </div>
+
+              <div class="flex items-center justify-between text-xs font-semibold py-1">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-red-500 shadow-sm"></span>
+                  <span class="text-slate-600">Decenas (D)</span>
+                </div>
+                <span class="bg-red-50 text-red-700 min-w-[24px] text-center px-1.5 py-0.5 rounded-md font-mono font-bold border border-red-100" id="breakdown-10">0</span>
+              </div>
+
+              <div class="flex items-center justify-between text-xs font-semibold py-1">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-blue-500 shadow-sm"></span>
+                  <span class="text-slate-600">Unidades (U)</span>
+                </div>
+                <span class="bg-blue-50 text-blue-700 min-w-[24px] text-center px-1.5 py-0.5 rounded-md font-mono font-bold border border-blue-100" id="breakdown-1">0</span>
+              </div>
+            </div>
+
+            <!-- Magnet snap status -->
+            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-gray-400">Rejilla</span>
+              <span id="magnet-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-blue-50 text-blue-600 border border-blue-100 flex items-center gap-1 shrink-0 transition-opacity">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Activo
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTEXT OVERLAY MENU (Appears conditionally above workspace when elements are selected. High Density Theme Action Popup with only icons) -->
+        <span id="selection-count-text" class="hidden"></span>
+        <div id="selection-menu" class="absolute left-1/2 -translate-x-1/2 top-6 pointer-events-auto z-40 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl p-1.5 flex items-center gap-1.5 shadow-xl transition duration-300 translate-y-[-100px] opacity-0 text-slate-800">
+          
+          <!-- Rotate Button (rods only) -->
+          <button onclick="rotateSelectedRods()" id="btn-rotate" class="flex items-center justify-center text-slate-700 hover:text-indigo-600 hover:bg-slate-100 bg-white border border-slate-200 rounded-xl p-2.5 transition duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-sm" title="Rotar decenas">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+            </svg>
+          </button>
+          
+          <!-- Unified Merge (Unir) -->
+          <button onclick="mergeSelectedBlocks()" id="btn-merge" class="flex items-center justify-center text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 rounded-xl p-2.5 transition duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-sm" title="Fusionar 10 menores en 1 mayor (Unir)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="m8 6 4-4 4 4" />
+              <path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22" />
+              <path d="M12 12.3a4 4 0 0 0 1.172 2.872L20 22" />
+            </svg>
+          </button>
+          
+          <!-- Split (Separar) -->
+          <button onclick="splitSelectedBlocks()" id="btn-split" class="flex items-center justify-center text-emerald-700 hover:bg-emerald-100 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 transition duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-sm" title="Separar en representantes menores">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M12 4v16" />
+              <path d="M12 12H4M7 9L4 12l3 3" />
+              <path d="M12 12h8M17 9l3 3-3 3" />
+            </svg>
+          </button>
+ 
+          <!-- Tachar (Strikethrough) -->
+          <button onclick="toggleStrikeSelected()" id="btn-strike" class="flex items-center justify-center text-slate-700 hover:text-indigo-600 hover:bg-slate-100 bg-white border border-slate-200 rounded-xl p-2.5 transition duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-sm" title="Tachar / Quitar tachado">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <rect x="5" y="5" width="14" height="14" rx="2" stroke="currentColor" stroke-dasharray="2 2" stroke-width="1.5" />
+            </svg>
+          </button>
+
+          <!-- Clone / Duplicar -->
+          <button onclick="cloneSelectedBlocks()" id="btn-clone" class="flex items-center justify-center text-slate-700 hover:text-indigo-600 hover:bg-slate-100 bg-white border border-slate-200 rounded-xl p-2.5 transition duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-sm" title="Duplicar">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="11" height="11" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          </button>
+ 
+          <!-- Eliminar -->
+          <button onclick="deleteSelectedBlocks()" id="btn-delete" class="flex items-center justify-center text-red-700 hover:bg-red-100 bg-red-50 border border-red-200/60 rounded-xl p-2.5 transition duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-sm" title="Eliminar">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M3 6h18" />
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
+
+      <!-- BOTTOM FLOATING TOOLBAR (Capsule menu for controls. High Density Theme) -->
+      <div id="bottom-toolbar" class="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto z-40 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full px-5 py-3 flex items-center gap-4 shadow-xl max-w-[calc(100%-2rem)] max-sm:px-3 text-slate-850">
+        <!-- Modes triggers -->
+        <div class="flex items-center bg-slate-100 rounded-full p-1 border border-slate-200/60 shrink-0">
+          <button onclick="setToolMode('select')" id="tool-select" class="flex items-center justify-center w-10 h-10 rounded-full hover:text-slate-800 transition duration-200 bg-indigo-600 text-white cursor-pointer select-btn" title="Lienzo / Selección">
+            <!-- Cursor arrow -->
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+              <path d="m13 13 6 6" />
+            </svg>
+          </button>
+          
+          <button onclick="setToolMode('pencil')" id="tool-pencil" class="flex items-center justify-center w-10 h-10 rounded-full hover:text-slate-800 transition duration-200 text-slate-400 cursor-pointer select-btn" title="Lápiz">
+            <!-- Pencil -->
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+          </button>
+
+          <button onclick="setToolMode('line')" id="tool-line" class="flex items-center justify-center w-10 h-10 rounded-full hover:text-slate-800 transition duration-200 text-slate-400 cursor-pointer select-btn" title="Línea">
+            <!-- Line ruler -->
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="m5 19 14-14" />
+            </svg>
+          </button>
+
+          <button onclick="setToolMode('textbox')" id="tool-text" class="flex items-center justify-center w-10 h-10 rounded-full hover:text-slate-800 transition duration-200 text-slate-400 cursor-pointer select-btn" title="Escribir">
+            <!-- Type Tool -->
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <polyline points="4 7 4 4 20 4 20 7" />
+              <line x1="9" y1="20" x2="15" y2="20" />
+              <line x1="12" y1="4" x2="12" y2="20" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Annotation Config Panel -->
+        <div id="paint-tools-config" class="hidden items-center gap-4 border-l border-slate-200 pl-4">
+          <!-- Width selectors -->
+          <div class="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+            <button onclick="setLineWidth(3)" id="width-thin" class="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center cursor-pointer bg-white text-[8px] font-bold text-slate-600">3</button>
+            <button onclick="setLineWidth(6)" id="width-medium" class="w-5 h-5 rounded-full border border-indigo-500/50 flex items-center justify-center cursor-pointer bg-indigo-600 text-[10px] font-bold text-white">6</button>
+            <button onclick="setLineWidth(10)" id="width-thick" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center cursor-pointer bg-white text-[10px] font-bold text-slate-600">10</button>
+          </div>
+
+          <!-- Color palettes -->
+          <div class="flex items-center gap-1.5 bg-slate-100 px-2 py-1.5 rounded-lg border border-slate-200">
+            <button onclick="setDrawColor('#3b82f6')" class="w-4 h-4 rounded-full bg-blue-500 border border-white/20 hover:scale-110 cursor-pointer" title="Azul"></button>
+            <button onclick="setDrawColor('#ef4444')" class="w-4 h-4 rounded-full bg-red-500 border border-white/20 hover:scale-110 cursor-pointer" title="Rojo"></button>
+            <button onclick="setDrawColor('#10b981')" class="w-4 h-4 rounded-full bg-emerald-500 border border-white/20 hover:scale-110 cursor-pointer" title="Verde"></button>
+            <button onclick="setDrawColor('#8b5cf6')" class="w-4 h-4 rounded-full bg-violet-500 border border-white/20 hover:scale-110 cursor-pointer" title="Morado"></button>
+            <button onclick="setDrawColor('#f59e0b')" class="w-4 h-4 rounded-full bg-amber-500 border border-white/20 hover:scale-110 cursor-pointer" title="Amarillo"></button>
+            <button onclick="setDrawColor('#1e1e2f')" class="w-4 h-4 rounded-full bg-[#1e1e2f] border border-slate-200 hover:scale-110 cursor-pointer" title="Gris Oscuro"></button>
+          </div>
+        </div>
+
+        <!-- Utility Toggles -->
+        <div class="flex items-center gap-3 border-l border-slate-200 pl-4 shrink-0 max-sm:gap-1 max-sm:pl-1">
+          <!-- Toggle Snapping -->
+          <button onclick="toggleMagnetGrid()" id="btn-toggle-grid" class="flex items-center justify-center p-2 rounded-lg bg-indigo-600 border border-indigo-500 text-white hover:bg-opacity-90 transition cursor-pointer" title="Alternar Imán de Cuadrícula">
+            <!-- Grid icon -->
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+          </button>
+
+          <!-- Undo drawings -->
+          <button onclick="undoLastStroke()" class="flex items-center justify-center p-2 rounded-lg bg-[#2d2d44]/10 hover:bg-[#2d2d44]/20 text-slate-700 hover:text-slate-900 transition border border-slate-200 cursor-pointer" title="Deshacer trazo">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+          </button>
+
+          <!-- Clean layout -->
+          <button onclick="clearDrawings()" class="flex items-center justify-center p-2 rounded-lg bg-[#2d2d44]/10 hover:bg-[#2d2d44]/20 text-slate-700 hover:text-slate-900 transition border border-slate-200 cursor-pointer" title="Borrar anotaciones">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+          </button>
+
+          <!-- Refresh whole page -->
+          <button onclick="clearCanvas()" class="flex items-center justify-center p-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 hover:text-red-800 transition cursor-pointer" title="Reiniciar lienzo entero">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 3v5h5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      </div>
+    </main>
+
+
+
+    <!-- MAIN CORE SCRIPTS: LOAD MATHIGON & FALLBACKS -->
+    <script type="module">
+      class CustomPointerTrack {
+        constructor(element) {
+          this.element = element;
+          this.callbacks = {};
+          this.isDragging = false;
+
+          const pointerDownHandler = (e) => {
+            // Only trigger for primary button clicks (usually left click, button 0) or touches
+            if (e.button !== undefined && e.button !== 0) return;
+            this.isDragging = true;
+            
+            if (this.callbacks['start']) {
+              this.callbacks['start'](e);
+            }
+
+            const pointerMoveHandler = (moveEvent) => {
+              if (!this.isDragging) return;
+              if (this.callbacks['move']) {
+                this.callbacks['move'](moveEvent);
+              }
+            };
+
+            const pointerUpHandler = (upEvent) => {
+              this.isDragging = false;
+              window.removeEventListener('pointermove', pointerMoveHandler);
+              window.removeEventListener('pointerup', pointerUpHandler);
+              if (this.callbacks['end']) {
+                this.callbacks['end'](upEvent);
+              }
+            };
+
+            window.addEventListener('pointermove', pointerMoveHandler);
+            window.addEventListener('pointerup', pointerUpHandler);
+          };
+
+          this.element.addEventListener('pointerdown', pointerDownHandler);
+        }
+
+        on(event, callback) {
+          this.callbacks[event] = callback;
+          return this;
+        }
+      }
+
+      let PointerTrack = CustomPointerTrack;
+      let Point, Rect;
+      let boostOk = false;
+      let euclidOk = false;
+
+      // Try dynamic imports of Mathigon modules inside async function to avoid top-level await bundler errors
+      async function initializeModules() {
+        try {
+          // Dynamic import of mathigon boost (loaded for standard mathigon compatibility, but not overwriting our standard element tracker)
+          const boostModule = await import("https://esm.sh/@mathigon/boost");
+          boostOk = true;
+          console.log("Mathigon Boost loaded successfully.");
+        } catch (err) {
+          console.warn("Mathigon Boost loading failed, using fallback gestures.", err);
+        }
+
+        try {
+          const euclidModule = await import("https://esm.sh/@mathigon/euclid");
+          Point = euclidModule.Point;
+          Rect = euclidModule.Rect;
+          euclidOk = true;
+          console.log("Mathigon Euclid loaded successfully.");
+        } catch (err) {
+          console.warn("Mathigon Euclid loading failed, initializing fallback geometry classes.", err);
+        }
+      }
+
+      if (!Point) {
+        Point = class FallbackPoint {
+          constructor(x, y) {
+            this.x = x;
+            this.y = y;
+          }
+          distance(p) {
+            return Math.sqrt(Math.pow(this.x - p.x, 2) + Math.pow(this.y - p.y, 2));
+          }
+        };
+      }
+
+      if (!Rect) {
+        Rect = class FallbackRect {
+          constructor(x, y, w, h) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+          }
+          get left() { return this.x; }
+          get top() { return this.y; }
+          get right() { return this.x + this.w; }
+          get bottom() { return this.y + this.h; }
+        };
+      }
+
+      // --- MAIN BASE 10 SYSTEM IMPLEMENTATION ---
+      
+      const canvasArea = document.getElementById('canvas-area');
+      const blocksContainer = document.getElementById('blocks-container');
+      const globalSumEl = document.getElementById('global-sum');
+      const breakdown100El = document.getElementById('breakdown-100');
+      const breakdown10El = document.getElementById('breakdown-10');
+      const breakdown1El = document.getElementById('breakdown-1');
+      const selectionMenu = document.getElementById('selection-menu');
+      const selectionCountText = document.getElementById('selection-count-text');
+      const magnetBadge = document.getElementById('magnet-badge');
+      const drawingSvg = document.getElementById('drawing-svg');
+      const lassoMarquee = document.getElementById('lasso-marquee');
+
+      // Global App states
+      const GRID_SIZE = 24; // Base unit block dimension (was 30, now 24 for compact touch scale)
+      let blocks = [];
+      let totalMode = 'all'; // 'all' or 'selected'
+      let toolMode = 'select'; // 'select', 'pencil', 'line', 'textbox'
+      let drawColor = '#ef4444'; // default red
+      let lineWidth = 6;
+      let gridMagnetActive = true;
+      let selectionCount = 0;
+
+      // Infinite Canvas Panning Settings
+      let panX = 0;
+      let panY = 0;
+
+      window.panCanvas = function(dx, dy) {
+        panX += dx;
+        panY += dy;
+        applyPan();
+      };
+
+      window.resetPan = function() {
+        panX = 0;
+        panY = 0;
+        applyPan();
+      };
+
+      function applyPan() {
+        const stage = document.getElementById('infinite-stage');
+        if (stage) {
+          stage.style.transform = `translate(${panX}px, ${panY}px)`;
+        }
+        
+        // Also offset the radial background grid coordinates to keep it aligned with blocks perfectly!
+        const canvas = document.getElementById('canvas-area');
+        if (canvas) {
+          canvas.style.backgroundPosition = `${panX}px ${panY}px`;
+        }
+        
+        const coordsDisplay = document.getElementById('coords-display');
+        if (coordsDisplay) {
+          coordsDisplay.textContent = `Desplazamiento: (${panX}, ${panY})`;
+        }
+      }
+
+      // Spawning offsets to avoid perfect overlapping pileups
+      let spawnIndex = 0;
+
+      // Annotations SVG paths history
+      let strokes = [];
+      let currentStrokePoints = [];
+      let activeStrokeElement = null;
+
+      // Event Listeners Initialization
+      window.onload = async () => {
+        // Await modules loading asynchronously
+        await initializeModules();
+        // Global Canvas Interactivity (Lasso Marquee or Drawing)
+        setupWorkspaceGestures();
+        // Keyboard bindings
+        setupKeyboardShortcuts();
+      };
+
+      // Set toolmode
+      window.setToolMode = function(mode) {
+        toolMode = mode;
+        // Update styling of buttons
+        document.querySelectorAll('.select-btn').forEach(btn => {
+          btn.classList.add('text-slate-400');
+          btn.classList.remove('bg-indigo-600', 'text-white');
+        });
+        
+        let activeBtn = document.getElementById('tool-' + (mode === 'textbox' ? 'text' : mode));
+        if (activeBtn) {
+          activeBtn.classList.remove('text-slate-400');
+          activeBtn.classList.add('bg-indigo-600', 'text-white');
+        }
+
+        // Show/Hide annotation config panel
+        const configPanel = document.getElementById('paint-tools-config');
+        if (mode === 'pencil' || mode === 'line') {
+          configPanel.classList.remove('hidden');
+          configPanel.classList.add('flex');
+          canvasArea.style.cursor = 'crosshair';
+        } else {
+          configPanel.classList.remove('flex');
+          configPanel.classList.add('hidden');
+          canvasArea.style.cursor = mode === 'textbox' ? 'cell' : 'default';
+        }
+
+        // Deselect if switching drawing tool
+        if (mode !== 'select') {
+          deselectAllBlocks();
+        }
+      };
+
+      window.setDrawColor = function(color) {
+        drawColor = color;
+      };
+
+      window.setLineWidth = function(width) {
+        lineWidth = width;
+        document.querySelectorAll('[id^="width-"]').forEach(btn => {
+          btn.classList.remove('border-indigo-500/50', 'bg-indigo-600', 'text-white');
+          btn.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-300');
+        });
+        const activeWidth = document.getElementById('width-' + (width === 3 ? 'thin' : width === 6 ? 'medium' : 'thick'));
+        if (activeWidth) {
+          activeWidth.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-300');
+          activeWidth.classList.add('border-indigo-500/50', 'bg-indigo-600', 'text-white');
+        }
+      };
+
+      window.toggleMagnetGrid = function() {
+        gridMagnetActive = !gridMagnetActive;
+        const btn = document.getElementById('btn-toggle-grid');
+        if (gridMagnetActive) {
+          btn.classList.add('bg-indigo-600', 'border-indigo-500');
+          btn.classList.remove('bg-slate-800', 'border-slate-700/60');
+          magnetBadge.classList.remove('opacity-40');
+        } else {
+          btn.classList.remove('bg-indigo-600', 'border-indigo-500');
+          btn.classList.add('bg-slate-800', 'border-slate-700/60');
+          magnetBadge.classList.add('opacity-40');
+        }
+      };
+
+      // --- SPAWNING BLOCKS ---
+      window.spawnBlock = function(type, customX = null, customY = null, autoSelect = true, extraProps = null) {
+        const id = 'b10_' + Math.random().toString(36).substr(2, 9);
+        
+        // Block dimension properties based on place value representation
+        let w = GRID_SIZE, h = GRID_SIZE;
+        if (type === 'rod_v') { w = GRID_SIZE; h = GRID_SIZE * 10; }
+        else if (type === 'rod_h') { w = GRID_SIZE * 10; h = GRID_SIZE; }
+        else if (type === 'flat') { w = GRID_SIZE * 10; h = GRID_SIZE * 10; }
+        else if (type === 'place_value_chart') { w = 1080; h = 600; }
+        else if (extraProps && extraProps.w && extraProps.h) {
+          w = extraProps.w;
+          h = extraProps.h;
+        }
+
+        // Find viewport coordinate center and compute coordinates corrected for panning
+        let canvasW = canvasArea.offsetWidth;
+        let canvasH = canvasArea.offsetHeight;
+
+        let spawnAtX = customX !== null ? customX : Math.round(((canvasW / 2 - w / 2) - panX) / GRID_SIZE) * GRID_SIZE;
+        let spawnAtY = customY !== null ? customY : Math.round(((canvasH / 2 - h / 2) - panY) / GRID_SIZE) * GRID_SIZE;
+
+        // Apply visual cascading if spawned through triggers
+        if (customX === null) {
+          spawnAtX += (spawnIndex % 5) * GRID_SIZE;
+          spawnAtY += (spawnIndex % 5) * GRID_SIZE;
+          spawnIndex++;
+        }
+
+        // Allow very large infinite space boundaries instead of clamping inside the immediate screen box
+        spawnAtX = Math.max(-100000, Math.min(100000, spawnAtX));
+        spawnAtY = Math.max(-100000, Math.min(100000, spawnAtY));
+
+        const block = {
+          id,
+          type,
+          x: spawnAtX,
+          y: spawnAtY,
+          w,
+          h,
+          selected: autoSelect,
+          ...extraProps
+        };
+
+        if (autoSelect) {
+          deselectAllBlocks();
+        }
+
+        // Build DOM Element
+        const el = createBlockDom(block);
+        block.element = el;
+        blocksContainer.appendChild(el);
+        blocks.push(block);
+
+        // Bind interactive Pointer Tracking
+        attachBlockTracking(block);
+
+        updateTotalValue();
+        updateSelectionMenu();
+        return block;
+      };
+
+      function createBlockDom(block) {
+        const el = document.createElement('div');
+        el.id = block.id;
+        el.className = 'absolute rounded cursor-grab active:cursor-grabbing hover:shadow-lg transition-[transform,shadow,border] duration-150 z-10 select-none';
+        el.style.left = block.x + 'px';
+        el.style.top = block.y + 'px';
+        el.style.width = block.w + 'px';
+        el.style.height = block.h + 'px';
+
+        // Apply coloring & internal borders separating units to highlight mathematical dimensions
+        if (block.type === 'unit') {
+          el.classList.add('bg-[#3b82f6]', 'border', 'border-[#2563eb]', 'grid-unit');
+          el.innerHTML = `<div class="w-full h-full flex items-center justify-center text-[9px] text-white/45 font-bold font-display select-none"></div>`;
+        } 
+        else if (block.type === 'rod_v') {
+          el.classList.add('bg-[#ef4444]', 'border', 'border-[#dc2626]', 'flex', 'flex-col', 'grid-unit');
+          let innerHtml = '';
+          for (let i = 0; i < 10; i++) {
+            innerHtml += `<div class="flex-1 w-full border-b border-black/15 last:border-b-0 flex items-center justify-center text-[8px] text-white/35 font-bold select-none"></div>`;
+          }
+          el.innerHTML = innerHtml;
+        } 
+        else if (block.type === 'rod_h') {
+          el.classList.add('bg-[#ef4444]', 'border', 'border-[#dc2626]', 'flex', 'flex-row', 'grid-unit');
+          let innerHtml = '';
+          for (let i = 0; i < 10; i++) {
+            innerHtml += `<div class="flex-grow h-full border-r border-black/15 last:border-r-0 flex items-center justify-center text-[8px] text-white/35 font-bold select-none"></div>`;
+          }
+          el.innerHTML = innerHtml;
+        } 
+        else if (block.type === 'flat') {
+          el.classList.add('bg-[#10b981]', 'border', 'border-[#059669]', 'grid', 'grid-cols-10', 'grid-rows-10', 'grid-unit');
+          let innerHtml = '';
+          for (let i = 0; i < 100; i++) {
+            innerHtml += `<div class="border-b border-r border-black/15 flex items-center justify-center text-[6px] text-white/20 select-none"></div>`;
+          }
+          el.innerHTML = innerHtml;
+        }
+        else if (block.type === 'place_value_chart') {
+          el.className = 'absolute rounded-2xl border-2 border-indigo-300 shadow-lg flex flex-col select-none hover:shadow-xl transition-shadow duration-150';
+          el.style.zIndex = '1';
+          el.style.pointerEvents = 'none';
+          el.innerHTML = `
+            <!-- Header Row -->
+            <div class="flex border-b-2 border-indigo-300 h-14 bg-white/95 rounded-t-2xl text-indigo-900 font-bold font-sans pointer-events-auto cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors">
+              <div class="flex-1 flex flex-col items-center justify-center border-r-2 border-indigo-200 gap-0.5 px-2 pointer-events-none">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-4 h-4 bg-[#10b981] rounded-sm shrink-0 opacity-90 shadow-sm grid grid-cols-2 grid-rows-2">
+                    <div class="border-b border-r border-white/20"></div><div class="border-b border-white/20"></div>
+                    <div class="border-r border-white/20"></div><div></div>
+                  </div>
+                  <span class="text-sm font-bold tracking-tight text-emerald-800">Centenas</span>
+                </div>
+                <span class="text-[9px] font-mono text-emerald-600/70 uppercase tracking-wider font-extrabold font-sans">Hundreds</span>
+              </div>
+              <div class="flex-1 flex flex-col items-center justify-center border-r-2 border-indigo-200 gap-0.5 px-2 pointer-events-none">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-2.5 h-4.5 bg-[#ef4444] rounded-sm shrink-0 opacity-90 shadow-sm flex flex-col justify-between">
+                    <div class="border-b border-black/10 h-1/2"></div>
+                  </div>
+                  <span class="text-sm font-bold tracking-tight text-red-800">Decenas</span>
+                </div>
+                <span class="text-[9px] font-mono text-red-600/70 uppercase tracking-wider font-extrabold font-sans">Tens</span>
+              </div>
+              <div class="flex-1 flex flex-col items-center justify-center gap-0.5 px-2 pointer-events-none">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-3.5 h-3.5 bg-[#3b82f6] rounded shrink-0 opacity-90 shadow-sm"></div>
+                  <span class="text-sm font-bold tracking-tight text-blue-800">Unidades</span>
+                </div>
+                <span class="text-[9px] font-mono text-blue-600/70 uppercase tracking-wider font-extrabold font-sans">Ones</span>
+              </div>
+            </div>
+            <!-- Body Columns with solid vertical separators (transparent background, pointer-events none) -->
+            <div class="flex-grow flex pointer-events-none">
+              <div class="flex-1 border-r-2 border-indigo-200"></div>
+              <div class="flex-1 border-r-2 border-indigo-200"></div>
+              <div class="flex-1"></div>
+            </div>
+          `;
+        }
+        else if (block.type === 'pencil' && block.relativePoints) {
+          const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svgEl.setAttribute("class", "w-full h-full overflow-visible");
+          svgEl.style.pointerEvents = "none";
+          
+          const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          pathEl.setAttribute("stroke", block.color || drawColor);
+          pathEl.setAttribute("stroke-width", block.width || lineWidth);
+          pathEl.setAttribute("fill", "none");
+          pathEl.setAttribute("stroke-linecap", "round");
+          pathEl.setAttribute("stroke-linejoin", "round");
+          
+          let dString = `M ${block.relativePoints[0].x} ${block.relativePoints[0].y}`;
+          for (let i = 1; i < block.relativePoints.length; i++) {
+            dString += ` L ${block.relativePoints[i].x} ${block.relativePoints[i].y}`;
+          }
+          pathEl.setAttribute("d", dString);
+          svgEl.appendChild(pathEl);
+          el.appendChild(svgEl);
+        }
+        else if (block.type === 'line' && block.relativeLine) {
+          const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svgEl.setAttribute("class", "w-full h-full overflow-visible");
+          svgEl.style.pointerEvents = "none";
+          
+          const lineEl = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          lineEl.setAttribute("x1", block.relativeLine.x1);
+          lineEl.setAttribute("y1", block.relativeLine.y1);
+          lineEl.setAttribute("x2", block.relativeLine.x2);
+          lineEl.setAttribute("y2", block.relativeLine.y2);
+          lineEl.setAttribute("stroke", block.color || drawColor);
+          lineEl.setAttribute("stroke-width", block.width || lineWidth);
+          lineEl.setAttribute("stroke-linecap", "round");
+          svgEl.appendChild(lineEl);
+          el.appendChild(svgEl);
+        }
+
+        if (block.selected) {
+          el.classList.add('selected-block');
+        }
+
+        if (block.crossedOut) {
+          const crossDiv = document.createElement('div');
+          crossDiv.className = 'absolute inset-0 w-full h-full pointer-events-none z-30';
+          crossDiv.innerHTML = `
+            <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <line x1="0" y1="0" x2="100" y2="100" stroke="black" stroke-width="3" vector-effect="non-scaling-stroke" />
+            </svg>
+          `;
+          el.appendChild(crossDiv);
+        }
+
+        return el;
+      }
+
+      // --- ATTACH GESTURE TRACKING ON EACH BLOCK USING POINTERTRACK ---
+      function attachBlockTracking(block) {
+        const tracker = new PointerTrack(block.element);
+        
+        let initialPointerX = 0;
+        let initialPointerY = 0;
+        let blockStartingCoords = new Map(); // Store initial x, y coordinates for dragging group
+        let isDragging = false;
+        let didToggleInStart = false;
+
+        tracker.on('start', (e) => {
+          // If pencil/ruler mode is on, bypass dragging
+          if (toolMode !== 'select') return;
+          
+          isDragging = true;
+          didToggleInStart = false;
+          // Capture the pointer coordinates
+          const touches = e.touches ? e.touches[0] : e;
+          initialPointerX = touches.clientX;
+          initialPointerY = touches.clientY;
+
+          // Toggle Selection
+          if (!block.selected) {
+            if (!e.shiftKey) {
+              deselectAllBlocks();
+            }
+            block.selected = true;
+            block.element.classList.add('selected-block');
+            didToggleInStart = true;
+          }
+
+          // Force instant update of the top selection menu on select/down
+          updateSelectionMenu();
+
+          // Capture reference starting points for all selected elements
+          blockStartingCoords.clear();
+          blocks.forEach(b => {
+            if (b.selected) {
+              blockStartingCoords.set(b.id, { x: b.x, y: b.y });
+            }
+          });
+
+          // Prevent container scrolling or double taps triggers while dragging
+          if (e.cancelable) e.preventDefault();
+        });
+
+        tracker.on('move', (e) => {
+          if (!isDragging || toolMode !== 'select') return;
+
+          const touches = e.touches ? e.touches[0] : e;
+          const dx = touches.clientX - initialPointerX;
+          const dy = touches.clientY - initialPointerY;
+
+          // Bounding box snapping logic
+          const primaryStart = blockStartingCoords.get(block.id);
+          let proposedX = primaryStart.x + dx;
+          let proposedY = primaryStart.y + dy;
+
+          let snapOffset = { x: 0, y: 0 };
+
+          // Step 1: Calculate snapping with unselected active blocks (magnetic board effect)
+          snapOffset = calculateBlockSnapping(block, proposedX, proposedY);
+
+          // Step 2: If no block snapping found, check if grid magnet alignment is toggled
+          if (snapOffset.x === 0 && snapOffset.y === 0 && gridMagnetActive && block.type !== 'pencil' && block.type !== 'line') {
+            const gridSnappedX = Math.round(proposedX / GRID_SIZE) * GRID_SIZE;
+            const gridSnappedY = Math.round(proposedY / GRID_SIZE) * GRID_SIZE;
+            snapOffset.x = gridSnappedX - proposedX;
+            snapOffset.y = gridSnappedY - proposedY;
+          }
+
+          // Apply displacement + snapping offsets to all selected blocks (moving them as a solid group)
+          const moveDx = dx + snapOffset.x;
+          const moveDy = dy + snapOffset.y;
+
+          blocks.forEach(b => {
+            if (b.selected && blockStartingCoords.has(b.id)) {
+              const startPos = blockStartingCoords.get(b.id);
+              let finalX = startPos.x + moveDx;
+              let finalY = startPos.y + moveDy;
+
+              // Keep within wide bounds of the infinite stage
+              finalX = Math.max(-100000, Math.min(100000, finalX));
+              finalY = Math.max(-100000, Math.min(100000, finalY));
+
+              // Update CSS Layout in screen
+              b.element.style.left = finalX + 'px';
+              b.element.style.top = finalY + 'px';
+            }
+          });
+
+          if (e.cancelable) e.preventDefault();
+        });
+
+        tracker.on('end', (e) => {
+          if (!isDragging) return;
+          isDragging = false;
+
+          // Differentiate a simple quick click from dragging by distance
+          const touches = e.touches ? (e.touches[0] || e.changedTouches[0]) : e;
+          const endX = touches ? touches.clientX : initialPointerX;
+          const endY = touches ? touches.clientY : initialPointerY;
+          const dist = Math.sqrt(Math.pow(endX - initialPointerX, 2) + Math.pow(endY - initialPointerY, 2));
+
+          if (dist < 10) {
+            if (!e.shiftKey) {
+              if (!didToggleInStart) {
+                deselectAllBlocks();
+                block.selected = true;
+                block.element.classList.add('selected-block');
+              }
+            } else {
+              if (!didToggleInStart) {
+                block.selected = false;
+                block.element.classList.remove('selected-block');
+              }
+            }
+          }
+
+          // Save final position back into coordinates states
+          blocks.forEach(b => {
+            if (b.selected) {
+              if (b.element) {
+                b.x = parseInt(b.element.style.left);
+                b.y = parseInt(b.element.style.top);
+              }
+            }
+          });
+
+          updateTotalValue();
+          updateSelectionMenu();
+        });
+      }
+
+      // Snapping math between bounding box edges (Magnetic alignment)
+      function calculateBlockSnapping(draggedBlock, proposedX, proposedY) {
+        const snapOffset = { x: 0, y: 0 };
+        const threshold = 12; // Snap distance in pixels
+
+        if (draggedBlock.type === 'pencil' || draggedBlock.type === 'line' || draggedBlock.type === 'place_value_chart') {
+          return snapOffset;
+        }
+
+        // Compile physical boundary points of current dragged element
+        const dBox = {
+          x1: proposedX,
+          y1: proposedY,
+          x2: proposedX + draggedBlock.w,
+          y2: proposedY + draggedBlock.h
+        };
+
+        for (let other of blocks) {
+          if (other.selected || other.id === draggedBlock.id) continue;
+          if (other.type === 'pencil' || other.type === 'line' || other.type === 'place_value_chart') continue;
+
+          const oBox = {
+            x1: other.x,
+            y1: other.y,
+            x2: other.x + other.w,
+            y2: other.y + other.h
+          };
+
+          // Check Left to Right snap
+          if (Math.abs(dBox.x1 - oBox.x2) < threshold) {
+            if (dBox.y2 > oBox.y1 - 10 && dBox.y1 < oBox.y2 + 10) {
+              snapOffset.x = oBox.x2 - dBox.x1;
+              if (Math.abs(dBox.y1 - oBox.y1) < threshold) snapOffset.y = oBox.y1 - dBox.y1;
+              break;
+            }
+          }
+          // Check Right to Left snap
+          else if (Math.abs(dBox.x2 - oBox.x1) < threshold) {
+            if (dBox.y2 > oBox.y1 - 10 && dBox.y1 < oBox.y2 + 10) {
+              snapOffset.x = oBox.x1 - draggedBlock.w - dBox.x1;
+              if (Math.abs(dBox.y1 - oBox.y1) < threshold) snapOffset.y = oBox.y1 - dBox.y1;
+              break;
+            }
+          }
+          // Check Top to Bottom snap
+          else if (Math.abs(dBox.y1 - oBox.y2) < threshold) {
+            if (dBox.x2 > oBox.x1 - 10 && dBox.x1 < oBox.x2 + 10) {
+              snapOffset.y = oBox.y2 - dBox.y1;
+              if (Math.abs(dBox.x1 - oBox.x1) < threshold) snapOffset.x = oBox.x1 - dBox.x1;
+              break;
+            }
+          }
+          // Check Bottom to Top snap
+          else if (Math.abs(dBox.y2 - oBox.y1) < threshold) {
+            if (dBox.x2 > oBox.x1 - 10 && dBox.x1 < oBox.x2 + 10) {
+              snapOffset.y = oBox.y1 - draggedBlock.h - dBox.y1;
+              if (Math.abs(dBox.x1 - oBox.x1) < threshold) snapOffset.x = oBox.x1 - dBox.x1;
+              break;
+            }
+          }
+        }
+
+        return snapOffset;
+      }
+
+      // --- INTERACTIVE ANNOTATIONS & SELECTION LASSO GESTURES ---
+      function setupWorkspaceGestures() {
+        let isWorkspaceAction = false;
+        let startX = 0, startY = 0;
+
+        canvasArea.addEventListener('pointerdown', (e) => {
+          // Verify if click landed directly on empty workspace background
+          // (e.g. not clicking on blocks, textbox cards, or interactive UI elements)
+          const isBlock = e.target.closest('.grid-unit') || e.target.closest('.selected-block') || e.target.closest('[id^="b10_"]') || e.target.closest('[id^="draw_"]');
+          const isTextBox = e.target.closest('[id^="text_"]');
+          const isUI = e.target.closest('button') || e.target.closest('#sidebar') || e.target.closest('#bottom-toolbar') || e.target.closest('#selection-menu') || e.target.closest('#total-dropdown-panel');
+          
+          if (isBlock || isTextBox || isUI) return;
+          
+          isWorkspaceAction = true;
+          const rect = canvasArea.getBoundingClientRect();
+          startX = e.clientX - rect.left;
+          startY = e.clientY - rect.top;
+
+          // Convert to stage space coordinates by compensating for the current pan offset
+          const stageStartX = startX - panX;
+          const stageStartY = startY - panY;
+
+          if (toolMode === 'select') {
+            // Start Multi-Selection Lasso/Marquee
+            if (!e.shiftKey) {
+              deselectAllBlocks();
+            }
+            lassoMarquee.style.left = startX + 'px';
+            lassoMarquee.style.top = startY + 'px';
+            lassoMarquee.style.width = '0px';
+            lassoMarquee.style.height = '0px';
+            lassoMarquee.classList.remove('hidden');
+          } 
+          else if (toolMode === 'pencil') {
+            // Start vector sketching stroke
+            currentStrokePoints = [{ x: stageStartX, y: stageStartY }];
+            activeStrokeElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            activeStrokeElement.setAttribute("stroke", drawColor);
+            activeStrokeElement.setAttribute("stroke-width", lineWidth);
+            activeStrokeElement.setAttribute("fill", "none");
+            activeStrokeElement.setAttribute("stroke-linecap", "round");
+            activeStrokeElement.setAttribute("stroke-linejoin", "round");
+            activeStrokeElement.setAttribute("d", `M ${stageStartX} ${stageStartY}`);
+            drawingSvg.appendChild(activeStrokeElement);
+          } 
+          else if (toolMode === 'line') {
+            // Start Straight Line sketch
+            activeStrokeElement = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            activeStrokeElement.setAttribute("x1", stageStartX);
+            activeStrokeElement.setAttribute("y1", stageStartY);
+            activeStrokeElement.setAttribute("x2", stageStartX);
+            activeStrokeElement.setAttribute("y2", stageStartY);
+            activeStrokeElement.setAttribute("stroke", drawColor);
+            activeStrokeElement.setAttribute("stroke-width", lineWidth);
+            activeStrokeElement.setAttribute("stroke-linecap", "round");
+            drawingSvg.appendChild(activeStrokeElement);
+          }
+          else if (toolMode === 'textbox') {
+            // Insert edible notes labels
+            createTextBox(stageStartX, stageStartY);
+            setToolMode('select'); // Switch back to selecting cursor
+          }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+          if (!isWorkspaceAction) return;
+
+          const rect = canvasArea.getBoundingClientRect();
+          // Allow wide movement coordinates beyond the screen bounds
+          const currentX = Math.max(-100000, Math.min(100000, e.clientX - rect.left));
+          const currentY = Math.max(-100000, Math.min(100000, e.clientY - rect.top));
+
+          // Convert current point to stage space coordinates
+          const stageCurrentX = currentX - panX;
+          const stageCurrentY = currentY - panY;
+
+          if (toolMode === 'select') {
+            // Draw visual Lasso rectangle (relative to viewport)
+            const left = Math.min(startX, currentX);
+            const top = Math.min(startY, currentY);
+            const w = Math.abs(startX - currentX);
+            const h = Math.abs(startY - currentY);
+
+            lassoMarquee.style.left = left + 'px';
+            lassoMarquee.style.top = top + 'px';
+            lassoMarquee.style.width = w + 'px';
+            lassoMarquee.style.height = h + 'px';
+
+            // Check intersecting coordinates live to select blocks (accounting for current pan offset)
+            blocks.forEach(b => {
+              const bx = b.x + panX;
+              const by = b.y + panY;
+              let inside = false;
+
+              if (b.type === 'place_value_chart') {
+                // Header Row Box: bx to bx + b.w, by to by + 56
+                const headerInside = !(bx + b.w < left || bx > left + w || by + 56 < top || by > top + h);
+                
+                // Left Border line (vertical at bx from by to by + b.h)
+                const leftBorderInside = (bx >= left && bx <= left + w && !(by + b.h < top || by > top + h));
+                
+                // Right Border line (vertical at bx + b.w from by to by + b.h)
+                const rightBorderInside = (bx + b.w >= left && bx + b.w <= left + w && !(by + b.h < top || by > top + h));
+                
+                // Bottom Border line (horizontal at by + b.h from bx to bx + b.w)
+                const bottomBorderInside = (by + b.h >= top && by + b.h <= top + h && !(bx + b.w < left || bx > left + w));
+                
+                // Separator 1 line (vertical at bx + b.w / 3 from by + 56 to by + b.h)
+                const s1x = bx + b.w / 3;
+                const sep1Inside = (s1x >= left && s1x <= left + w && !(by + b.h < top || by + 56 > top + h));
+                
+                // Separator 2 line (vertical at bx + b.w * 2 / 3 from by + 56 to by + b.h)
+                const s2x = bx + (b.w * 2) / 3;
+                const sep2Inside = (s2x >= left && s2x <= left + w && !(by + b.h < top || by + 56 > top + h));
+                
+                inside = headerInside || leftBorderInside || rightBorderInside || bottomBorderInside || sep1Inside || sep2Inside;
+              } else {
+                inside = !(bx + b.w < left || bx > left + w || by + b.h < top || by > top + h);
+              }
+
+              if (inside) {
+                if (!b.selected) {
+                  b.selected = true;
+                  b.element.classList.add('selected-block');
+                }
+              } else if (!e.shiftKey) {
+                b.selected = false;
+                b.element.classList.remove('selected-block');
+              }
+            });
+
+            updateSelectionMenu();
+          } 
+          else if (toolMode === 'pencil' && activeStrokeElement) {
+            currentStrokePoints.push({ x: stageCurrentX, y: stageCurrentY });
+            // Built path commands
+            let dString = `M ${currentStrokePoints[0].x} ${currentStrokePoints[0].y}`;
+            for (let i = 1; i < currentStrokePoints.length; i++) {
+              dString += ` L ${currentStrokePoints[i].x} ${currentStrokePoints[i].y}`;
+            }
+            activeStrokeElement.setAttribute("d", dString);
+          } 
+          else if (toolMode === 'line' && activeStrokeElement) {
+            activeStrokeElement.setAttribute("x2", stageCurrentX);
+            activeStrokeElement.setAttribute("y2", stageCurrentY);
+          }
+        });
+
+        window.addEventListener('pointerup', () => {
+          if (!isWorkspaceAction) return;
+          isWorkspaceAction = false;
+
+          if (toolMode === 'select') {
+            lassoMarquee.classList.add('hidden');
+          } 
+          else if (toolMode === 'pencil' && activeStrokeElement) {
+            if (currentStrokePoints.length >= 2) {
+              const xs = currentStrokePoints.map(p => p.x);
+              const ys = currentStrokePoints.map(p => p.y);
+              const minX = Math.min(...xs);
+              const maxX = Math.max(...xs);
+              const minY = Math.min(...ys);
+              const maxY = Math.max(...ys);
+              
+              const w = maxX - minX;
+              const h = maxY - minY;
+              
+              const padding = 10;
+              const blockX = minX - padding;
+              const blockY = minY - padding;
+              const blockW = w + padding * 2;
+              const blockH = h + padding * 2;
+              
+              const relativePoints = currentStrokePoints.map(p => ({
+                x: p.x - blockX,
+                y: p.y - blockY
+              }));
+              
+              activeStrokeElement.remove();
+              
+              const block = {
+                id: 'draw_' + Math.random().toString(36).substr(2, 9),
+                type: 'pencil',
+                x: blockX,
+                y: blockY,
+                w: blockW,
+                h: blockH,
+                relativePoints: relativePoints,
+                color: drawColor,
+                width: lineWidth,
+                selected: false
+              };
+              
+              const el = createBlockDom(block);
+              block.element = el;
+              blocksContainer.appendChild(el);
+              blocks.push(block);
+              attachBlockTracking(block);
+              
+              strokes.push(block);
+            } else {
+              activeStrokeElement.remove();
+            }
+            activeStrokeElement = null;
+          }
+          else if (toolMode === 'line' && activeStrokeElement) {
+            const x1 = parseFloat(activeStrokeElement.getAttribute("x1"));
+            const y1 = parseFloat(activeStrokeElement.getAttribute("y1"));
+            const x2 = parseFloat(activeStrokeElement.getAttribute("x2"));
+            const y2 = parseFloat(activeStrokeElement.getAttribute("y2"));
+            
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxY = Math.max(y1, y2);
+            
+            const w = maxX - minX;
+            const h = maxY - minY;
+            
+            if (w > 1 || h > 1) {
+              const padding = 10;
+              const blockX = minX - padding;
+              const blockY = minY - padding;
+              const blockW = w + padding * 2;
+              const blockH = h + padding * 2;
+              
+              const relativeLine = {
+                x1: x1 - blockX,
+                y1: y1 - blockY,
+                x2: x2 - blockX,
+                y2: y2 - blockY
+              };
+              
+              activeStrokeElement.remove();
+              
+              const block = {
+                id: 'draw_' + Math.random().toString(36).substr(2, 9),
+                type: 'line',
+                x: blockX,
+                y: blockY,
+                w: blockW,
+                h: blockH,
+                relativeLine: relativeLine,
+                color: drawColor,
+                width: lineWidth,
+                selected: false
+              };
+              
+              const el = createBlockDom(block);
+              block.element = el;
+              blocksContainer.appendChild(el);
+              blocks.push(block);
+              attachBlockTracking(block);
+              
+              strokes.push(block);
+            } else {
+              activeStrokeElement.remove();
+            }
+            activeStrokeElement = null;
+          }
+        });
+      }
+
+      // Deselect Action
+      function deselectAllBlocks() {
+        blocks.forEach(b => {
+          b.selected = false;
+          b.element.classList.remove('selected-block');
+        });
+        updateSelectionMenu();
+      }
+
+      function deselectAllBlocksPublic() {
+        deselectAllBlocks();
+      }
+      window.deselectAllBlocks = deselectAllBlocksPublic;
+
+      // Update contextual control panels displaying coordinates & grouping keys
+      function updateSelectionMenu() {
+        const selected = blocks.filter(b => b.selected);
+        selectionCount = selected.length;
+
+        if (selectionCount > 0) {
+          selectionCountText.textContent = `${selectionCount} ${selectionCount === 1 ? 'bloque seleccionado' : 'bloques seleccionados'}`;
+          
+          // Display configuration options dynamically based on elements inside selection
+          const hasV = selected.some(b => b.type === 'rod_v');
+          const hasH = selected.some(b => b.type === 'rod_h');
+          const hasComposite = selected.some(b => b.type === 'rod_v' || b.type === 'rod_h' || b.type === 'flat');
+
+          // Rotation buttons only valid for tens rods
+          document.getElementById('btn-rotate').style.display = (hasV || hasH) ? 'flex' : 'none';
+
+          // Group block split options
+          document.getElementById('btn-split').style.display = hasComposite ? 'flex' : 'none';
+
+          // Group Merge logic trigger
+          const unitsSelected = selected.filter(b => b.type === 'unit').length;
+          const decenasSelected = selected.filter(b => b.type === 'rod_v' || b.type === 'rod_h').length;
+          
+          if ((unitsSelected === 10 && selectionCount === 10) || 
+              (unitsSelected === 100 && selectionCount === 100) || 
+              (decenasSelected === 10 && selectionCount === 10)) {
+            document.getElementById('btn-merge').style.display = 'flex';
+          } else {
+            document.getElementById('btn-merge').style.display = 'none';
+          }
+
+          // Slide active block context overlay in
+          selectionMenu.classList.remove('translate-y-[-100px]', 'opacity-0');
+          selectionMenu.classList.add('translate-y-0', 'opacity-100');
+        } else {
+          // Slide overlay back out of viewport
+          selectionMenu.classList.remove('translate-y-0', 'opacity-100');
+          selectionMenu.classList.add('translate-y-[-100px]', 'opacity-0');
+        }
+        updateTotalValue();
+      }
+
+      // Delete blocks selected from screen
+      window.deleteSelectedBlocks = function() {
+        const remaining = [];
+        blocks.forEach(b => {
+          if (b.selected) {
+            if (b.element) {
+              b.element.parentNode.removeChild(b.element);
+            }
+          } else {
+            remaining.push(b);
+          }
+        });
+        
+        blocks = remaining;
+        updateTotalValue();
+        updateSelectionMenu();
+      };
+
+      // Clone/Duplicate current collection
+      window.cloneSelectedBlocks = function() {
+        const selected = blocks.filter(b => b.selected);
+        deselectAllBlocks();
+
+        selected.forEach(b => {
+          let extraProps = null;
+          if (b.type === 'pencil') {
+            extraProps = {
+              relativePoints: JSON.parse(JSON.stringify(b.relativePoints)),
+              color: b.color,
+              width: b.width,
+              w: b.w,
+              h: b.h
+            };
+          } else if (b.type === 'line') {
+            extraProps = {
+              relativeLine: JSON.parse(JSON.stringify(b.relativeLine)),
+              color: b.color,
+              width: b.width,
+              w: b.w,
+              h: b.h
+            };
+          }
+          // Spawn clone slightly cascading down with GRID_SIZE offset
+          const clonedObj = spawnBlock(b.type, b.x + GRID_SIZE, b.y + GRID_SIZE, true, extraProps);
+          if (clonedObj && b.crossedOut) {
+            clonedObj.crossedOut = true;
+            updateBlockVisual(clonedObj);
+          }
+        });
+      };
+
+      // Toggle strikeout (diagonal slash line) on selected blocks
+      window.toggleStrikeSelected = function() {
+        const selected = blocks.filter(b => b.selected);
+        if (selected.length === 0) return;
+
+        // If any selected block is crossed out, we un-strike all selected blocks.
+        // Otherwise, we strike them all out.
+        const hasCrossed = selected.some(b => b.crossedOut);
+        
+        selected.forEach(b => {
+          b.crossedOut = !hasCrossed;
+          updateBlockVisual(b);
+        });
+        
+        updateSelectionMenu();
+      };
+
+      // Rotate Red tens rods (90 degrees alignment switches)
+      window.rotateSelectedRods = function() {
+        const selected = blocks.filter(b => b.selected);
+        selected.forEach(b => {
+          if (b.type === 'rod_v') {
+            // Swap to rod_h
+            b.type = 'rod_h';
+            b.w = GRID_SIZE * 10;
+            b.h = GRID_SIZE;
+            updateBlockVisual(b);
+          } else if (b.type === 'rod_h') {
+            // Swap to rod_v
+            b.type = 'rod_v';
+            b.w = GRID_SIZE;
+            b.h = GRID_SIZE * 10;
+            updateBlockVisual(b);
+          }
+        });
+        updateSelectionMenu();
+      };
+
+      function updateBlockVisual(block) {
+        // Redraw inner layout divs correctly
+        const proposedDom = createBlockDom(block);
+        
+        // Retain original tracking attachment reference, swap layout element
+        block.element.parentNode.replaceChild(proposedDom, block.element);
+        block.element = proposedDom;
+        
+        attachBlockTracking(block);
+      }
+
+       // --- MATHEMATICAL MATH ACTIONS: MULTIPLE MERGING (GROUPING) ---
+      window.mergeSelectedBlocks = function() {
+        const selected = blocks.filter(b => b.selected);
+        const units = selected.filter(b => b.type === 'unit');
+        const decenas = selected.filter(b => b.type === 'rod_v' || b.type === 'rod_h');
+
+        if (units.length === 10 && selected.length === 10) {
+          // Calculate center of gravity coordinates
+          let sumX = 0, sumY = 0;
+          units.forEach(u => { sumX += u.x; sumY += u.y; });
+          let targetX = Math.round((sumX / 10) / GRID_SIZE) * GRID_SIZE;
+          let targetY = Math.round((sumY / 10) / GRID_SIZE) * GRID_SIZE;
+
+          // If all elements are crossedOut, the result is crossedOut
+          const allCrossed = selected.every(b => b.crossedOut);
+
+          // Delete the units
+          deleteSelectedBlocks();
+
+          // Spawn new 10 unit Rod Vert
+          const spawned = spawnBlock('rod_v', targetX, targetY, true);
+          if (spawned && allCrossed) {
+            spawned.crossedOut = true;
+            updateBlockVisual(spawned);
+          }
+        } 
+        else if (units.length === 100 && selected.length === 100) {
+          // Calculate center of gravity coordinates
+          let sumX = 0, sumY = 0;
+          units.forEach(u => { sumX += u.x; sumY += u.y; });
+          let targetX = Math.round((sumX / 100) / GRID_SIZE) * GRID_SIZE;
+          let targetY = Math.round((sumY / 100) / GRID_SIZE) * GRID_SIZE;
+
+          // If all elements are crossedOut, the result is crossedOut
+          const allCrossed = selected.every(b => b.crossedOut);
+
+          // Delete the units
+          deleteSelectedBlocks();
+
+          // Spawn Centena flat matrix
+          const spawned = spawnBlock('flat', targetX, targetY, true);
+          if (spawned && allCrossed) {
+            spawned.crossedOut = true;
+            updateBlockVisual(spawned);
+          }
+        }
+        else if (decenas.length === 10 && selected.length === 10) {
+          // Calculate average coords
+          let sumX = 0, sumY = 0;
+          decenas.forEach(d => { sumX += d.x; sumY += d.y; });
+          let targetX = Math.round((sumX / 10) / GRID_SIZE) * GRID_SIZE;
+          let targetY = Math.round((sumY / 10) / GRID_SIZE) * GRID_SIZE;
+
+          // If all elements are crossedOut, the result is crossedOut
+          const allCrossed = selected.every(b => b.crossedOut);
+
+          // Delete tens
+          deleteSelectedBlocks();
+
+          // Spawn Centena फ्लैट matrix
+          const spawned = spawnBlock('flat', targetX, targetY, true);
+          if (spawned && allCrossed) {
+            spawned.crossedOut = true;
+            updateBlockVisual(spawned);
+          }
+        }
+      };
+
+      // --- MATHEMATICAL MATH ACTIONS: SPLITTING (BREAKING/UNGROUPING) ---
+      window.splitSelectedBlocks = function() {
+        const selected = blocks.filter(b => b.selected);
+        const newSplits = [];
+
+        selected.forEach(b => {
+          if (b.type === 'rod_v') {
+            // Split vertical decena in 10 stacked units
+            for (let i = 0; i < 10; i++) {
+              newSplits.push({ type: 'unit', x: b.x, y: b.y + i * GRID_SIZE, crossedOut: !!b.crossedOut });
+            }
+            // Remove parent rod
+            b.element.parentNode.removeChild(b.element);
+            blocks = blocks.filter(item => item.id !== b.id);
+          } 
+          else if (b.type === 'rod_h') {
+            // Split horizontal decena in 10 lined-up units
+            for (let i = 0; i < 10; i++) {
+              newSplits.push({ type: 'unit', x: b.x + i * GRID_SIZE, y: b.y, crossedOut: !!b.crossedOut });
+            }
+            b.element.parentNode.removeChild(b.element);
+            blocks = blocks.filter(item => item.id !== b.id);
+          } 
+          else if (b.type === 'flat') {
+            // Split green centena into 10 vertical decena rods arranged side-by-side
+            for (let i = 0; i < 10; i++) {
+              newSplits.push({ type: 'rod_v', x: b.x + i * GRID_SIZE, y: b.y, crossedOut: !!b.crossedOut });
+            }
+            b.element.parentNode.removeChild(b.element);
+            blocks = blocks.filter(item => item.id !== b.id);
+          }
+        });
+
+        deselectAllBlocks();
+
+        // Spawn all elements and auto-select them together for instant easy manipulation
+        newSplits.forEach(item => {
+          const spawned = spawnBlock(item.type, item.x, item.y, true);
+          if (spawned && item.crossedOut) {
+            spawned.crossedOut = true;
+            updateBlockVisual(spawned);
+          }
+        });
+
+        updateTotalValue();
+        updateSelectionMenu();
+      };
+
+      // --- TEXT ANNOTATION BOX CARDS CREATION ---
+      window.changeTextSize = function(boxId, delta) {
+        const card = document.getElementById(boxId);
+        if (!card) return;
+        const editor = card.querySelector('[contenteditable]');
+        if (!editor) return;
+        
+        let currentSize = parseInt(editor.style.fontSize || '13');
+        if (isNaN(currentSize)) currentSize = 13;
+        
+        let newSize = currentSize + delta;
+        if (newSize < 9) newSize = 9;
+        if (newSize > 48) newSize = 48;
+        
+        editor.style.fontSize = newSize + 'px';
+        
+        const sizeLabel = card.querySelector('.text-size-label');
+        if (sizeLabel) {
+          sizeLabel.textContent = newSize + 'px';
+        }
+      };
+
+      function createTextBox(x, y) {
+        const boxId = 'text_' + Math.random().toString(36).substr(2, 9);
+        const card = document.createElement('div');
+        card.id = boxId;
+        card.className = 'absolute bg-white/95 border border-slate-300 rounded-xl shadow-xl p-2.5 z-40 select-text transition-shadow duration-150 group min-w-[140px]';
+        card.style.left = x + 'px';
+        card.style.top = y + 'px';
+
+        card.innerHTML = `
+          <div contenteditable="true" class="outline-none text-slate-800 font-sans pr-4 pl-1 pb-1 min-h-[1.5rem] leading-snug break-all focus:ring-1 focus:ring-indigo-500 rounded" style="font-size: 13px;">Ingresa anotación...</div>
+          <!-- Drag handler -->
+          <div class="textbox-drag absolute -top-2.5 -left-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full p-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition shadow-md" title="Mover">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v14M5 12h14" /></svg>
+          </div>
+          <!-- Delete widget -->
+          <button onclick="document.getElementById('${boxId}').remove()" class="absolute -top-2.5 -right-2.5 bg-red-500 hover:bg-red-400 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-md cursor-pointer" title="Borrar">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          <!-- Size controls -->
+          <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-full px-2 py-0.5 opacity-0 group-hover:opacity-100 transition shadow-md text-[10px] font-bold select-none z-50">
+            <button class="px-1.5 py-0.5 hover:bg-indigo-200 rounded text-[9px] cursor-pointer" title="Reducir tamaño" onclick="window.changeTextSize('${boxId}', -2)">A-</button>
+            <span class="text-size-label text-[9px] px-1 border-l border-r border-indigo-200 font-mono">13px</span>
+            <button class="px-1.5 py-0.5 hover:bg-indigo-200 rounded text-[9px] cursor-pointer" title="Aumentar tamaño" onclick="window.changeTextSize('${boxId}', 2)">A+</button>
+          </div>
+        `;
+
+        blocksContainer.appendChild(card);
+
+        // Content dragged implementation bind
+        const dragBtn = card.querySelector('.textbox-drag');
+        const contentTracker = new PointerTrack(dragBtn);
+        let pointerStartX = 0, pointerStartY = 0;
+        let cardStartX = 0, cardStartY = 0;
+
+        contentTracker.on('start', (e) => {
+          const touches = e.touches ? e.touches[0] : e;
+          pointerStartX = touches.clientX;
+          pointerStartY = touches.clientY;
+          cardStartX = parseInt(card.style.left);
+          cardStartY = parseInt(card.style.top);
+          if (e.cancelable) e.preventDefault();
+        });
+
+        contentTracker.on('move', (e) => {
+          const touches = e.touches ? e.touches[0] : e;
+          const dx = touches.clientX - pointerStartX;
+          const dy = touches.clientY - pointerStartY;
+          card.style.left = (cardStartX + dx) + 'px';
+          card.style.top = (cardStartY + dy) + 'px';
+          if (e.cancelable) e.preventDefault();
+        });
+
+        // Auto focus the textarea element inside newly added note
+        setTimeout(() => {
+          const content = card.querySelector('[contenteditable]');
+          content.focus();
+          document.execCommand('selectAll', false, null);
+        }, 150);
+      }
+
+      // --- GLOBAL SUM LEDGER AND PLACE-VALUE TRACKER ---
+      function updateTotalValue() {
+        let sum = 0;
+        let scale100 = 0;
+        let scale10 = 0;
+        let scale1 = 0;
+
+        let totalBlocksCount = 0;
+        let selectedBlocksCount = 0;
+        let crossedBlocksCount = 0;
+
+        blocks.forEach(b => {
+          if (b.type === 'pencil' || b.type === 'line' || b.type === 'place_value_chart') {
+            return;
+          }
+          totalBlocksCount += 1;
+          if (b.selected) {
+            selectedBlocksCount += 1;
+          }
+          if (b.crossedOut) {
+            crossedBlocksCount += 1;
+          }
+
+          // If totalMode is 'selected', only count selected blocks
+          if (totalMode === 'selected' && !b.selected) {
+            return;
+          }
+          // If totalMode is 'crossed', only count crossed out blocks
+          if (totalMode === 'crossed' && !b.crossedOut) {
+            return;
+          }
+
+          if (b.type === 'unit') {
+            sum += 1;
+            scale1 += 1;
+          } else if (b.type === 'rod_v' || b.type === 'rod_h') {
+            sum += 10;
+            scale10 += 1;
+          } else if (b.type === 'flat') {
+            sum += 100;
+            scale100 += 1;
+          }
+        });
+
+        globalSumEl.textContent = sum;
+        breakdown100El.textContent = scale100;
+        breakdown10El.textContent = scale10;
+        breakdown1El.textContent = scale1;
+
+        // Update the mode buttons to show dynamic count totals
+        const btnAll = document.getElementById('btn-mode-all');
+        const btnSelected = document.getElementById('btn-mode-selected');
+        const btnCrossed = document.getElementById('btn-mode-crossed');
+        if (btnAll) btnAll.textContent = `Todo (${totalBlocksCount})`;
+        if (btnSelected) btnSelected.textContent = `Selección (${selectedBlocksCount})`;
+        if (btnCrossed) btnCrossed.textContent = `Tachados (${crossedBlocksCount})`;
+      }
+
+      window.setTotalMode = function(mode) {
+        totalMode = mode;
+        const btnAll = document.getElementById('btn-mode-all');
+        const btnSelected = document.getElementById('btn-mode-selected');
+        const btnCrossed = document.getElementById('btn-mode-crossed');
+        const sumLabel = document.getElementById('sum-label');
+
+        if (!btnAll || !btnSelected || !btnCrossed) return;
+
+        const inactiveClass = "flex-1 text-center py-1 rounded-lg text-[11px] font-bold transition duration-200 cursor-pointer select-none text-slate-500 hover:text-slate-800";
+        const activeClass = "flex-1 text-center py-1 rounded-lg text-[11px] font-bold transition duration-200 cursor-pointer select-none bg-white text-indigo-600 shadow-sm border border-slate-200/20";
+
+        btnAll.className = inactiveClass;
+        btnSelected.className = inactiveClass;
+        btnCrossed.className = inactiveClass;
+
+        if (mode === 'all') {
+          btnAll.className = activeClass;
+          if (sumLabel) sumLabel.textContent = "Suma General";
+        } else if (mode === 'selected') {
+          btnSelected.className = activeClass;
+          if (sumLabel) sumLabel.textContent = "Suma Selección";
+        } else if (mode === 'crossed') {
+          btnCrossed.className = activeClass;
+          if (sumLabel) sumLabel.textContent = "Suma Tachados";
+        }
+        updateTotalValue();
+      };
+
+      // --- DROPDOWN BUBBLE ACTIONS ---
+      window.toggleTotalDropdown = function(event) {
+        if (event) {
+          event.stopPropagation();
+        }
+        const panel = document.getElementById('total-dropdown-panel');
+        const arrow = document.getElementById('total-dropdown-arrow');
+        if (panel && arrow) {
+          const isCollapsed = panel.classList.contains('opacity-0');
+          if (isCollapsed) {
+            // Expand
+            panel.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
+            panel.classList.add('scale-100', 'opacity-100', 'pointer-events-auto');
+            arrow.classList.add('rotate-180');
+          } else {
+            // Collapse
+            panel.classList.remove('scale-100', 'opacity-100', 'pointer-events-auto');
+            panel.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+            arrow.classList.remove('rotate-180');
+          }
+        }
+      };
+
+      // Close dropdown if user clicks outside of it
+      document.addEventListener('click', function(event) {
+        const panel = document.getElementById('total-dropdown-panel');
+        const arrow = document.getElementById('total-dropdown-arrow');
+        const btn = document.getElementById('total-bubble-btn');
+        if (panel && arrow && btn) {
+          if (!panel.contains(event.target) && !btn.contains(event.target)) {
+            panel.classList.remove('scale-100', 'opacity-100', 'pointer-events-auto');
+            panel.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+            arrow.classList.remove('rotate-180');
+          }
+        }
+      });
+
+      // --- SIDEBAR COLLAPSE ACTIONS ---
+      window.toggleSidebar = function() {
+        const sidebar = document.getElementById('sidebar');
+        const icon = document.getElementById('toggle-icon');
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        
+        if (sidebar && icon) {
+          const isCollapsed = sidebar.classList.contains('-ml-[260px]');
+          if (isCollapsed) {
+            // Expand
+            sidebar.classList.remove('-ml-[260px]', 'shadow-none');
+            icon.classList.remove('rotate-180');
+            if (toggleBtn) {
+              toggleBtn.title = "Contraer panel de bloques";
+            }
+          } else {
+            // Collapse
+            sidebar.classList.add('-ml-[260px]', 'shadow-none');
+            icon.classList.add('rotate-180');
+            if (toggleBtn) {
+              toggleBtn.title = "Expandir panel de bloques";
+            }
+          }
+        }
+      };
+
+      // --- CLEAR UTILITIES ACTIONS ---
+      window.undoLastStroke = function() {
+        if (strokes.length > 0) {
+          const last = strokes.pop();
+          if (last.element && last.element.parentNode) {
+            last.element.parentNode.removeChild(last.element);
+          }
+          blocks = blocks.filter(b => b.id !== last.id);
+          updateTotalValue();
+          updateSelectionMenu();
+        }
+      };
+
+      window.clearDrawings = function() {
+        const drawingBlocks = blocks.filter(b => b.type === 'pencil' || b.type === 'line');
+        drawingBlocks.forEach(b => {
+          if (b.element && b.element.parentNode) {
+            b.element.parentNode.removeChild(b.element);
+          }
+        });
+        blocks = blocks.filter(b => b.type !== 'pencil' && b.type !== 'line');
+        strokes = [];
+        updateTotalValue();
+        updateSelectionMenu();
+      };
+
+      let clearConfirmTimeout = null;
+      let clearConfirmedOnce = false;
+
+      window.clearCanvas = function() {
+        // Find the restart button in the bottom toolbar
+        const btn = document.querySelector('[title="Reiniciar lienzo entero"]') || document.querySelector('button[onclick="clearCanvas()"]');
+        
+        if (!clearConfirmedOnce) {
+          clearConfirmedOnce = true;
+          if (btn) {
+            btn.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700', 'scale-115', 'shadow-md');
+            btn.classList.remove('bg-red-50', 'text-red-700', 'hover:bg-red-100');
+            btn.title = "Confirmar: haga clic de nuevo para borrar todo";
+          }
+          clearConfirmTimeout = setTimeout(() => {
+            clearConfirmedOnce = false;
+            if (btn) {
+              btn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-700', 'scale-115', 'shadow-md');
+              btn.classList.add('bg-red-50', 'text-red-700', 'hover:bg-red-100');
+              btn.title = "Reiniciar lienzo entero";
+            }
+          }, 3000);
+          return;
+        }
+
+        // Second click: proceed with clearing the workspace
+        clearConfirmedOnce = false;
+        if (clearConfirmTimeout) clearTimeout(clearConfirmTimeout);
+        
+        if (btn) {
+          btn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-700', 'scale-115', 'shadow-md');
+          btn.classList.add('bg-red-50', 'text-red-700', 'hover:bg-red-100');
+          btn.title = "Reiniciar lienzo entero";
+        }
+
+        // Perform clean logic
+        blocksContainer.innerHTML = '';
+        blocks = [];
+        
+        // Remove textboxes from DOM
+        document.querySelectorAll('[id^="text_"]').forEach(el => el.remove());
+
+        clearDrawings();
+        updateTotalValue();
+        updateSelectionMenu();
+        resetPan();
+        spawnIndex = 0;
+      };
+
+      // --- HOTKEYS / KEYBOARD ---
+      function setupKeyboardShortcuts() {
+        window.addEventListener('keydown', (e) => {
+          if (document.activeElement.getAttribute('contenteditable') === 'true') {
+            return; // Ignore key bindings if user is editing label cards
+          }
+          
+          if (e.key === 'Delete' || e.key === 'Backspace') {
+            deleteSelectedBlocks();
+          }
+          else if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            cloneSelectedBlocks();
+          }
+          else if (e.key === 'r' || e.key === 'R') {
+            rotateSelectedRods();
+          }
+          else if (e.key === 'Escape') {
+            deselectAllBlocks();
+          }
+          else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            panCanvas(0, 150);
+          }
+          else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            panCanvas(0, -150);
+          }
+          else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            panCanvas(150, 0);
+          }
+          else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            panCanvas(-150, 0);
+          }
+        });
+      }
+
+
+
+    </script>
+  </body>
+</html>
