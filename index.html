@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Manipulativos Matemáticos de Base 10</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,6 +33,24 @@
         background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
         background-size: 24px 24px;
         background-position: 0 0;
+        touch-action: none;
+      }
+      #blocks-container,
+      [id^="b10_"],
+      [id^="draw_"],
+      [id^="text_"],
+      .grid-unit {
+        touch-action: none;
+      }
+      #bottom-toolbar,
+      #dpad-controller {
+        bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+      }
+      #infinite-stage {
+        transition: transform 0.2s ease-out;
+      }
+      #infinite-stage.dragging {
+        transition: none !important;
       }
       /* Custom scrollbars */
       ::-webkit-scrollbar {
@@ -184,7 +202,7 @@
 
         <!-- WORKSPACE OVERLAYS FOR DRAWING & SELECTION -->
         <!-- INFINITE STAGE WRAPPER -->
-        <div id="infinite-stage" class="absolute transition-transform duration-200 ease-out origin-top-left" style="transform: translate(0px, 0px); width: 80000px; height: 80000px; top: -40000px; left: -40000px;">
+        <div id="infinite-stage" class="absolute origin-top-left" style="transform: translate(0px, 0px); width: 80000px; height: 80000px; top: -40000px; left: -40000px;">
           <!-- SVG Drawing overlay -->
           <svg id="drawing-svg" class="absolute pointer-events-none z-10" style="left: 40000px; top: 40000px; width: 40000px; height: 40000px; overflow: visible !important;"></svg>
           <!-- HTML5 Canvas for drawing backup or helper strokes (hidden by default) -->
@@ -198,7 +216,7 @@
         <div id="lasso-marquee" class="absolute border-2 border-[#3b82f6] bg-[#3b82f6]/10 rounded pointer-events-none hidden z-30"></div>
 
         <!-- FLOATING CONTROLLER FOR PANNING (D-Pad style, bottom-left) -->
-        <div class="absolute bottom-6 left-6 pointer-events-auto z-40 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3 flex flex-col items-center gap-1.5 text-slate-800">
+        <div id="dpad-controller" class="absolute bottom-6 left-6 pointer-events-auto z-40 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-3 flex flex-col items-center gap-1.5 text-slate-800">
           <!-- D-pad grid layout -->
           <div class="grid grid-cols-3 grid-rows-3 gap-1 w-28 h-28 relative">
             <div></div>
@@ -454,9 +472,12 @@
           this.isDragging = false;
 
           const pointerDownHandler = (e) => {
-            // Only trigger for primary button clicks (usually left click, button 0) or touches
             if (e.button !== undefined && e.button !== 0) return;
             this.isDragging = true;
+            
+            try {
+              this.element.setPointerCapture(e.pointerId);
+            } catch (err) {}
             
             if (this.callbacks['start']) {
               this.callbacks['start'](e);
@@ -469,17 +490,33 @@
               }
             };
 
-            const pointerUpHandler = (upEvent) => {
+            const cleanup = (upEvent) => {
               this.isDragging = false;
+              try {
+                this.element.releasePointerCapture(upEvent.pointerId);
+              } catch (err) {}
               window.removeEventListener('pointermove', pointerMoveHandler);
               window.removeEventListener('pointerup', pointerUpHandler);
+              window.removeEventListener('pointercancel', pointerCancelHandler);
+            };
+
+            const pointerUpHandler = (upEvent) => {
+              cleanup(upEvent);
               if (this.callbacks['end']) {
                 this.callbacks['end'](upEvent);
               }
             };
 
+            const pointerCancelHandler = (cancelEvent) => {
+              cleanup(cancelEvent);
+              if (this.callbacks['end']) {
+                this.callbacks['end'](cancelEvent);
+              }
+            };
+
             window.addEventListener('pointermove', pointerMoveHandler);
             window.addEventListener('pointerup', pointerUpHandler);
+            window.addEventListener('pointercancel', pointerCancelHandler);
           };
 
           this.element.addEventListener('pointerdown', pointerDownHandler);
@@ -707,11 +744,14 @@
         let spawnAtX = customX !== null ? customX : Math.round(((canvasW / 2 - w / 2) - panX) / GRID_SIZE) * GRID_SIZE;
         let spawnAtY = customY !== null ? customY : Math.round(((canvasH / 2 - h / 2) - panY) / GRID_SIZE) * GRID_SIZE;
 
-        // Apply visual cascading if spawned through triggers
-        if (customX === null) {
-          spawnAtX += (spawnIndex % 5) * GRID_SIZE;
-          spawnAtY += (spawnIndex % 5) * GRID_SIZE;
-          spawnIndex++;
+        // Prevent perfect overlap by checking if a block already occupies this exact position
+        if (customX === null && type !== 'place_value_chart') {
+          let attempts = 0;
+          while (blocks.some(b => b.type !== 'place_value_chart' && Math.abs(b.x - spawnAtX) < 2 && Math.abs(b.y - spawnAtY) < 2) && attempts < 50) {
+            spawnAtX += GRID_SIZE;
+            spawnAtY += GRID_SIZE;
+            attempts++;
+          }
         }
 
         // Allow very large infinite space boundaries instead of clamping inside the immediate screen box
@@ -894,7 +934,7 @@
 
         tracker.on('start', (e) => {
           // If pencil/ruler mode is on, bypass dragging
-          if (toolMode !== 'select') return;
+          if (toolMode !== 'select' || isTwoFingerPanning) return;
           
           isDragging = true;
           didToggleInStart = false;
@@ -929,6 +969,10 @@
         });
 
         tracker.on('move', (e) => {
+          if (isTwoFingerPanning) {
+            isDragging = false;
+            return;
+          }
           if (!isDragging || toolMode !== 'select') return;
 
           const touches = e.touches ? e.touches[0] : e;
@@ -1082,11 +1126,42 @@
       }
 
       // --- INTERACTIVE ANNOTATIONS & SELECTION LASSO GESTURES ---
+      const activePointers = new Map();
+      let isTwoFingerPanning = false;
+      let lastPanCenter = null;
+
       function setupWorkspaceGestures() {
         let isWorkspaceAction = false;
         let startX = 0, startY = 0;
 
         canvasArea.addEventListener('pointerdown', (e) => {
+          // Track touch pointer
+          activePointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+
+          // If there are exactly two pointers active, switch to panning mode
+          if (activePointers.size === 2) {
+            isTwoFingerPanning = true;
+            const stage = document.getElementById('infinite-stage');
+            if (stage) stage.classList.add('dragging');
+
+            // Hide lasso marquee and clear active drawing stroke
+            lassoMarquee.classList.add('hidden');
+            if (activeStrokeElement) {
+              activeStrokeElement.remove();
+              activeStrokeElement = null;
+            }
+            isWorkspaceAction = false;
+
+            const pointers = Array.from(activePointers.values());
+            lastPanCenter = {
+              x: (pointers[0].clientX + pointers[1].clientX) / 2,
+              y: (pointers[0].clientY + pointers[1].clientY) / 2
+            };
+            return;
+          }
+
+          if (activePointers.size > 2) return; // Ignore more than 2 fingers
+
           // Verify if click landed directly on empty workspace background
           // (e.g. not clicking on blocks, textbox cards, or interactive UI elements)
           const isBlock = e.target.closest('.grid-unit') || e.target.closest('.selected-block') || e.target.closest('[id^="b10_"]') || e.target.closest('[id^="draw_"]');
@@ -1147,6 +1222,30 @@
         });
 
         window.addEventListener('pointermove', (e) => {
+          if (activePointers.has(e.pointerId)) {
+            activePointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+          }
+
+          if (isTwoFingerPanning && activePointers.size === 2) {
+            const pointers = Array.from(activePointers.values());
+            const currentCenter = {
+              x: (pointers[0].clientX + pointers[1].clientX) / 2,
+              y: (pointers[0].clientY + pointers[1].clientY) / 2
+            };
+            
+            if (lastPanCenter) {
+              const dx = currentCenter.x - lastPanCenter.x;
+              const dy = currentCenter.y - lastPanCenter.y;
+              panX += dx;
+              panY += dy;
+              applyPan();
+            }
+            
+            lastPanCenter = currentCenter;
+            if (e.cancelable) e.preventDefault();
+            return;
+          }
+
           if (!isWorkspaceAction) return;
 
           const rect = canvasArea.getBoundingClientRect();
@@ -1230,7 +1329,20 @@
           }
         });
 
-        window.addEventListener('pointerup', () => {
+        const cleanupPointer = (e) => {
+          activePointers.delete(e.pointerId);
+          if (activePointers.size < 2) {
+            if (isTwoFingerPanning) {
+              isTwoFingerPanning = false;
+              const stage = document.getElementById('infinite-stage');
+              if (stage) stage.classList.remove('dragging');
+            }
+            lastPanCenter = null;
+          }
+        };
+
+        window.addEventListener('pointerup', (e) => {
+          cleanupPointer(e);
           if (!isWorkspaceAction) return;
           isWorkspaceAction = false;
 
@@ -1342,6 +1454,16 @@
             }
             activeStrokeElement = null;
           }
+        });
+
+        window.addEventListener('pointercancel', (e) => {
+          cleanupPointer(e);
+          if (activeStrokeElement) {
+            activeStrokeElement.remove();
+            activeStrokeElement = null;
+          }
+          lassoMarquee.classList.add('hidden');
+          isWorkspaceAction = false;
         });
       }
 
