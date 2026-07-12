@@ -55,6 +55,16 @@
       #dpad-controller {
         bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
       }
+      #total-bubble-container {
+        position: absolute !important;
+        top: 1.5rem !important;
+        right: 1.5rem !important;
+      }
+      #total-dropdown-panel {
+        position: absolute !important;
+        right: 0px !important;
+        top: 100% !important;
+      }
       #infinite-stage {
         transition: transform 0.2s ease-out;
       }
@@ -256,7 +266,7 @@
         </div>
 
         <!-- FLOATING STATUS BOARD / TOTAL COUNTER (High Density Theme - Collapsible/Dropdown Bubble) -->
-        <div class="absolute top-6 right-6 pointer-events-none z-40 flex flex-col items-end">
+        <div id="total-bubble-container" class="absolute top-6 right-6 pointer-events-none z-40 flex flex-col items-end">
           <!-- Main Bubble Button -->
           <button onclick="toggleTotalDropdown(event)" id="total-bubble-btn" class="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-full shadow-lg hover:shadow-xl hover:border-indigo-200 hover:bg-slate-50 transition-all duration-200 px-5 py-2.5 flex items-center gap-2 cursor-pointer select-none text-slate-800 font-bold text-sm" title="Ver desglose de bloques">
             <span class="text-slate-600 font-semibold font-sans">Valor Total</span>
