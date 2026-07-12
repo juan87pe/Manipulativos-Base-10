@@ -21,6 +21,15 @@
       }
     </script>
     <style>
+      html, body {
+        height: 100%;
+        height: 100dvh;
+        width: 100%;
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
       body {
         font-family: 'Helvetica Neue', Arial, sans-serif;
         background-color: #1e1e2f;
@@ -122,7 +131,7 @@
       }
     </style>
   </head>
-  <body class="w-screen h-screen overflow-hidden flex bg-[#1e1e2f] text-slate-100">
+  <body class="overflow-hidden flex bg-[#1e1e2f] text-slate-100">
 
     <!-- SIDEBAR (LEFT) -->
     <aside id="sidebar" class="w-[260px] bg-[#1e1e2f] border-r border-[#2d2d44] flex flex-col justify-between shrink-0 h-full z-20 shadow-xl transition-all duration-300 ease-in-out relative">
